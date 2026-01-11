@@ -86,7 +86,7 @@ class DocumentIngestionService:
                 content=chunk_text,
                 embedding=embedding,
                 chunk_index=idx,
-                metadata={"original_file": filename},
+                doc_metadata={"original_file": filename},
             )
             chunk_records.append(chunk_record)
 

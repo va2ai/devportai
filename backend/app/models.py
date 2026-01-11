@@ -16,7 +16,7 @@ class Document(Base):
     content_type = Column(String(50))
     file_size = Column(Integer)
     chunk_count = Column(Integer, default=0)
-    metadata = Column(JSONB, default={})
+    doc_metadata = Column(JSONB, default={})
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -30,5 +30,5 @@ class Chunk(Base):
     content = Column(Text, nullable=False)
     embedding = Column(Vector(1536))
     chunk_index = Column(Integer)
-    metadata = Column(JSONB, default={})
+    doc_metadata = Column(JSONB, default={})
     created_at = Column(DateTime, default=datetime.utcnow)

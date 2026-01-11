@@ -120,7 +120,7 @@ The frontend will be available at http://localhost:5173
 
 Once the backend is running:
 - **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
+- **ReDoc**: http://localhost:3000/redoc
 
 ### Health Check Endpoint
 

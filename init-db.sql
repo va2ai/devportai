@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS documents (
     content_type VARCHAR(50),
     file_size INTEGER,
     chunk_count INTEGER DEFAULT 0,
-    metadata JSONB DEFAULT '{}',
+    doc_metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS chunks (
     content TEXT NOT NULL,
     embedding vector(1536),
     chunk_index INTEGER,
-    metadata JSONB DEFAULT '{}',
+    doc_metadata JSONB DEFAULT '{}',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -1,9 +1,7 @@
 services:
   # PostgreSQL Database with pgvector extension
   postgres:
-    build:
-      context: .
-      dockerfile: Dockerfile.postgres
+    image: pgvector/pgvector:pg15
     container_name: rag_postgres
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
@@ -11,6 +9,7 @@ services:
       POSTGRES_DB: ${DB_NAME:-rag_db}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
     ports:
       - "${DB_PORT:-5432}:5432"
     healthcheck:
