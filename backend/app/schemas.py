@@ -60,6 +60,22 @@ class RetrievalResponse(BaseModel):
     )
 
 
+class DocumentListItem(BaseModel):
+    """Single document list item"""
+    document_id: int = Field(..., description="Document ID")
+    title: str = Field(..., description="Document title")
+    filename: str = Field(..., description="Filename")
+    content_type: Optional[str] = Field(None, description="MIME type")
+    chunk_count: int = Field(..., description="Number of chunks")
+    created_at: Optional[datetime] = Field(None, description="Upload timestamp")
+
+
+class DocumentListResponse(BaseModel):
+    """Response schema for document list"""
+    count: int = Field(..., description="Number of documents")
+    documents: List[DocumentListItem] = Field(default_factory=list)
+
+
 class ErrorResponse(BaseModel):
     """Error response schema"""
     error: str = Field(..., description="Error message")

@@ -3,16 +3,18 @@ import os
 from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
+from sqlalchemy import text, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import engine, get_db
-from app.models import Base
+from app.models import Base, Document
 from app.schemas import (
     IngestResponse,
     FileSummary,
     RetrievalRequest,
     RetrievalResponse,
     RetrievalResultItem,
+    DocumentListResponse,
+    DocumentListItem,
     ErrorResponse,
 )
 from app.chat_schemas import ChatRequest, ChatResponse
@@ -195,6 +197,32 @@ async def retrieve_documents(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")
+
+
+@app.get("/api/v1/documents", response_model=DocumentListResponse)
+async def list_documents(
+    db_session: AsyncSession = Depends(get_db),
+):
+    """List uploaded documents"""
+    try:
+        result = await db_session.execute(
+            select(Document).order_by(Document.created_at.desc())
+        )
+        documents = result.scalars().all()
+        items = [
+            DocumentListItem(
+                document_id=doc.id,
+                title=doc.title,
+                filename=doc.filename,
+                content_type=doc.content_type,
+                chunk_count=doc.chunk_count,
+                created_at=doc.created_at,
+            )
+            for doc in documents
+        ]
+        return DocumentListResponse(count=len(items), documents=items)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listing documents: {str(e)}")
 
 
 @app.post("/chat", response_model=ChatResponse)

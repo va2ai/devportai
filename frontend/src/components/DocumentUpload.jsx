@@ -14,6 +14,7 @@ import React, { useState, useRef } from 'react'
  * - setUploadProgress: function
  * - uploadedFiles: array
  * - setUploadedFiles: function
+ * - documents: array
  */
 const DocumentUpload = ({
   onUploadSuccess,
@@ -26,6 +27,7 @@ const DocumentUpload = ({
   setUploadProgress,
   uploadedFiles,
   setUploadedFiles,
+  documents,
 }) => {
   const [isDragging, setIsDragging] = useState(false)
   const fileInputRef = useRef(null)

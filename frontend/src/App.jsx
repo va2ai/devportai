@@ -17,6 +17,7 @@ function App() {
   const [uploadSuccess, setUploadSuccess] = useState(null)
   const [uploadError, setUploadError] = useState(null)
   const [selectedFilename, setSelectedFilename] = useState(null)
+  const [documents, setDocuments] = useState([])
   const [isUploading, setIsUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [uploadedFiles, setUploadedFiles] = useState([])
@@ -40,6 +41,21 @@ function App() {
     // Refresh health check every 30 seconds
     const interval = setInterval(checkHealth, 30000)
     return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    const fetchDocuments = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/v1/documents`)
+        if (!response.ok) return
+        const data = await response.json()
+        setDocuments(Array.isArray(data.documents) ? data.documents : [])
+      } catch (_) {
+        // Ignore list errors; upload still works
+      }
+    }
+
+    fetchDocuments()
   }, [])
 
   const handleSendMessage = async (query) => {
@@ -138,6 +154,26 @@ function App() {
     setUploadSuccess(`Successfully uploaded ${data.filename} (${data.chunk_count} chunks created).${summaryLine}`)
     setUploadError(null)
     setSelectedFilename(data?.filename || null)
+    setDocuments(prev => {
+      const next = [
+        {
+          document_id: data.document_id,
+          title: data.filename?.replace(/\.[^/.]+$/, ''),
+          filename: data.filename,
+          content_type: data.summary?.content_type || null,
+          chunk_count: data.chunk_count,
+          created_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]
+      const seen = new Set()
+      return next.filter(doc => {
+        const key = `${doc.document_id}-${doc.filename}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    })
     // Clear success message after 5 seconds
     setTimeout(() => setUploadSuccess(null), 5000)
   }
@@ -285,6 +321,8 @@ function App() {
                 isLoading={isLoading}
                 latestTrace={latestTrace}
                 selectedFilename={selectedFilename}
+                documents={documents}
+                onSelectFilename={setSelectedFilename}
               />
             </div>
 
@@ -323,6 +361,7 @@ function App() {
               setUploadProgress={setUploadProgress}
               uploadedFiles={uploadedFiles}
               setUploadedFiles={setUploadedFiles}
+              documents={documents}
             />
 
             {/* Upload Info Banner */}

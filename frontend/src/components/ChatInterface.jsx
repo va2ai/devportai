@@ -11,8 +11,10 @@ import TracePanel from './TracePanel'
  * - isLoading: boolean
  * - latestTrace: object with trace data
  * - selectedFilename: string
+ * - documents: array
+ * - onSelectFilename: function
  */
-const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace, selectedFilename }) => {
+const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace, selectedFilename, documents, onSelectFilename }) => {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -46,6 +48,21 @@ const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace, select
         <p className="text-blue-100 text-xs md:text-sm mt-1">
           Ask questions and get verified answers with source citations
         </p>
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <label className="text-xs text-white/90">Document scope:</label>
+          <select
+            className="text-xs text-white bg-white/15 border border-white/20 rounded px-2 py-1"
+            value={selectedFilename || ''}
+            onChange={(e) => onSelectFilename?.(e.target.value || null)}
+          >
+            <option value="">All documents</option>
+            {(documents || []).map((doc) => (
+              <option key={`${doc.document_id}-${doc.filename}`} value={doc.filename}>
+                {doc.filename}
+              </option>
+            ))}
+          </select>
+        </div>
         {selectedFilename && (
           <div className="mt-2 inline-flex items-center gap-2 bg-white/15 text-white text-xs px-2 py-1 rounded">
             <span className="opacity-90">Using:</span>
