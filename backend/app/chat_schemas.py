@@ -11,7 +11,7 @@ class SourceChunk(BaseModel):
     document_filename: str = Field(..., description="Original filename")
     document_title: str = Field(..., description="Document title")
     content: str = Field(..., description="Text content of the chunk")
-    similarity_score: float = Field(..., ge=0.0, le=1.0, description="Similarity score (0-1)")
+    similarity_score: float = Field(..., ge=-1.0, le=1.0, description="Similarity score (-1 to 1)")
     chunk_index: int = Field(..., description="Position of chunk in document")
 
 
@@ -86,7 +86,7 @@ class ChatRequest(BaseModel):
     )
     similarity_threshold: float = Field(
         default=0.5,
-        ge=0.0,
+        ge=-1.0,
         le=1.0,
         description="Minimum similarity score for retrieval"
     )

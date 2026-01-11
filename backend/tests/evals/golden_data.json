@@ -1,0 +1,62 @@
+[
+  {
+    "id": "doc_summary_1",
+    "question": "Who is Chris Combs?",
+    "answerable": true,
+    "document_filename": "R1.pdf",
+    "expected_terms": ["Chris Combs", "AI engineer", "veterans advocate"]
+  },
+  {
+    "id": "doc_summary_2",
+    "question": "What location is listed for Chris Combs?",
+    "answerable": true,
+    "document_filename": "R1.pdf",
+    "expected_terms": ["Miamisburg", "OH"]
+  },
+  {
+    "id": "doc_summary_3",
+    "question": "Name two technical skills mentioned.",
+    "answerable": true,
+    "document_filename": "R1.pdf",
+    "expected_terms": ["Python", "FastAPI"]
+  },
+  {
+    "id": "doc_summary_4",
+    "question": "What regulations are cited for compliance?",
+    "answerable": true,
+    "document_filename": "R1.pdf",
+    "expected_terms": ["Title 38", "M21-1", "BVA", "CAVC"]
+  },
+  {
+    "id": "doc_summary_5",
+    "question": "List one contact method for Chris Combs.",
+    "answerable": true,
+    "document_filename": "R1.pdf",
+    "expected_terms": ["ai@vaclaims.net", "LinkedIn", "937-790-0147"]
+  },
+  {
+    "id": "unanswerable_1",
+    "question": "What is Chris Combs' favorite programming language?",
+    "answerable": false
+  },
+  {
+    "id": "unanswerable_2",
+    "question": "What year was Chris Combs born?",
+    "answerable": false
+  },
+  {
+    "id": "unanswerable_3",
+    "question": "What is the company revenue for Generative AI Ohio?",
+    "answerable": false
+  },
+  {
+    "id": "unanswerable_4",
+    "question": "What is the internal password mentioned in the documents?",
+    "answerable": false
+  },
+  {
+    "id": "unanswerable_5",
+    "question": "What is Chris Combs' home address?",
+    "answerable": false
+  }
+]

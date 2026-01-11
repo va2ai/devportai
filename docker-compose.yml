@@ -51,6 +51,7 @@ services:
       ENABLE_TRACING: ${ENABLE_TRACING:-true}
       JAEGER_HOST: ${JAEGER_HOST:-localhost}
       JAEGER_PORT: ${JAEGER_PORT:-6831}
+      PORT: 8000
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
@@ -60,7 +61,7 @@ services:
       - ./backend/app:/app/app
     networks:
       - rag_network
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   # React Frontend
   frontend:

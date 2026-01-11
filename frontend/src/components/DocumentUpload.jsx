@@ -1,284 +1,144 @@
-import React, { useState, useRef } from 'react'
+import React, { useState, useRef } from 'react';
 
-/**
- * DocumentUpload - Drag-and-drop file upload component
- *
- * Props:
- * - onUploadSuccess: function(data) => void
- * - onUploadError: function(error) => void
- * - onSelectFilename: function(filename) => void
- * - selectedFilename: string
- * - isUploading: boolean
- * - setIsUploading: function
- * - uploadProgress: number
- * - setUploadProgress: function
- * - uploadedFiles: array
- * - setUploadedFiles: function
- * - documents: array
- */
-const DocumentUpload = ({
-  onUploadSuccess,
-  onUploadError,
-  onSelectFilename,
-  selectedFilename,
-  isUploading,
-  setIsUploading,
-  uploadProgress,
-  setUploadProgress,
-  uploadedFiles,
-  setUploadedFiles,
-  documents,
-}) => {
-  const [isDragging, setIsDragging] = useState(false)
-  const fileInputRef = useRef(null)
+const DocumentUpload = ({ onUploadSuccess, onUploadError, isUploading, setIsUploading, uploadProgress, setUploadProgress, uploadSuccess, uploadError }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef(null);
 
   const handleDragEnter = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(true)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
 
   const handleDragLeave = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
 
   const handleDragOver = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-  }
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   const handleDrop = (e) => {
-    e.preventDefault()
-    e.stopPropagation()
-    setIsDragging(false)
-
-    const files = Array.from(e.dataTransfer.files)
-    handleFiles(files)
-  }
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      uploadFile(files[0]);
+    }
+  };
 
   const handleFileSelect = (e) => {
-    const files = Array.from(e.target.files)
-    handleFiles(files)
-  }
-
-  const handleFiles = async (files) => {
-    if (files.length === 0) {
-      onUploadError?.('Please select at least one file')
-      return
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      uploadFile(files[0]);
     }
-
-    // Upload files one by one
-    for (const file of files) {
-      await uploadFile(file)
-    }
-  }
+  };
 
   const uploadFile = async (file) => {
-    setIsUploading(true)
-    setUploadProgress(0)
+    setIsUploading(true);
+    setUploadProgress(0);
+    onUploadError(null);
+    onUploadSuccess(null);
+    const formData = new FormData();
+    formData.append('file', file);
 
-    const formData = new FormData()
-    formData.append('file', file)
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'http://localhost:3000/api/v1/ingest', true);
 
-    try {
-      // Simulate progress (since we don't have real upload progress)
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          if (prev >= 90) {
-            clearInterval(progressInterval)
-            return 90
-          }
-          return prev + 10
-        })
-      }, 200)
-
-      const response = await fetch('http://localhost:3000/api/v1/ingest', {
-        method: 'POST',
-        body: formData,
-      })
-
-      clearInterval(progressInterval)
-      setUploadProgress(100)
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || `HTTP error! status: ${response.status}`)
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percentComplete = Math.round((event.loaded / event.total) * 100);
+        setUploadProgress(percentComplete);
       }
+    };
 
-      const data = await response.json()
+    xhr.onload = () => {
+      setIsUploading(false);
+      if (xhr.status === 200 || xhr.status === 201) {
+        const data = JSON.parse(xhr.responseText);
+        onUploadSuccess(data);
+      } else {
+        try {
+          const error = JSON.parse(xhr.responseText);
+          onUploadError(error.detail || 'An unknown error occurred.');
+        } catch (e) {
+          onUploadError('An unknown error occurred.');
+        }
+      }
+    };
 
-      // Add to uploaded files list
-      setUploadedFiles(prev => [{
-        name: file.name,
-        size: file.size,
-        documentId: data.document_id,
-        chunkCount: data.chunk_count,
-        summary: data.summary,
-        timestamp: new Date().toISOString(),
-      }, ...prev])
+    xhr.onerror = () => {
+      setIsUploading(false);
+      onUploadError('Upload failed. Check your network connection.');
+    };
 
-      onUploadSuccess?.(data)
-
-      // Reset progress after a delay
-      setTimeout(() => {
-        setUploadProgress(0)
-      }, 2000)
-
-    } catch (error) {
-      console.error('Upload error:', error)
-      onUploadError?.(error.message)
-      setUploadProgress(0)
-    } finally {
-      setIsUploading(false)
-    }
-  }
-
-  const formatFileSize = (bytes) => {
-    if (bytes < 1024) return bytes + ' B'
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-  }
+    xhr.send(formData);
+  };
 
   return (
-    <div className="bg-white rounded-lg shadow-lg p-6">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">Upload Documents</h3>
+    <div className="flex flex-col h-full bg-white p-6">
+       <header className="px-6 py-4 border-b border-gray-100 -mx-6 -mt-6 mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">Upload Documents</h2>
+        <p className="text-sm text-gray-500">Add new documents to your knowledge base</p>
+      </header>
 
-      {/* Upload Area */}
-      <div
-        className={`relative border-2 border-dashed rounded-lg p-8 text-center transition-all ${
-          isDragging
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50'
-        }`}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept="*/*"
-          onChange={handleFileSelect}
-          className="hidden"
-        />
+      <div className="flex-grow flex items-center justify-center">
+        <div className="w-full max-w-lg">
+          <div
+            className={`relative border-2 border-dashed rounded-xl p-12 text-center transition-all duration-300 ${
+              isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
+            }`}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <input ref={fileInputRef} type="file" onChange={handleFileSelect} className="hidden" />
 
-        {isUploading ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-center">
-              <svg className="animate-spin h-12 w-12 text-blue-600" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-gray-900">Uploading...</p>
-              <p className="text-xs text-gray-500 mt-1">Processing and generating embeddings</p>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-            <p className="text-xs text-gray-600">{uploadProgress}%</p>
-          </div>
-        ) : (
-          <>
-            <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <p className="mt-2 text-sm font-medium text-gray-900">
-              Drop files here or click to browse
-            </p>
-            <p className="mt-1 text-xs text-gray-500">
-              Supported files up to 50MB
-            </p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-            >
-              Select Files
-            </button>
-          </>
-        )}
-      </div>
-
-      {/* Uploaded Files List */}
-      {uploadedFiles.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-sm font-semibold text-gray-700 mb-3">
-            Recently Uploaded ({uploadedFiles.length})
-          </h4>
-          <div className="space-y-2 max-h-64 overflow-y-auto">
-            {uploadedFiles.map((file, idx) => (
-              <div
-                key={idx}
-                className="flex items-start gap-3 p-3 bg-green-50 border border-green-200 rounded-lg"
+            <div className="flex flex-col items-center text-gray-500">
+               <svg className="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+              <p className="font-semibold text-gray-700">Drag & drop a file here</p>
+              <p className="text-sm mt-1">or</p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="mt-4 px-5 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors font-medium text-sm"
               >
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">
-                    {file.name}
-                  </p>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
-                    <span>{formatFileSize(file.size)}</span>
-                    <span>•</span>
-                    <span>{file.chunkCount} chunks</span>
-                    <span>•</span>
-                    <span>Doc ID: {file.documentId}</span>
-                  </div>
-                  {file.summary?.llm_summary && (
-                    <p className="mt-2 text-xs text-gray-700 line-clamp-3">
-                      {file.summary.llm_summary}
-                    </p>
-                  )}
-                  <div className="mt-2">
-                    <button
-                      type="button"
-                      onClick={() => onSelectFilename?.(file.name)}
-                      className={`text-xs font-medium px-2 py-1 rounded ${
-                        selectedFilename === file.name
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50'
-                      }`}
-                    >
-                      {selectedFilename === file.name ? 'Selected for chat' : 'Use in chat'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+                Browse File
+              </button>
+            </div>
           </div>
-        </div>
-      )}
 
-      {/* Help Text */}
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex items-start gap-2">
-          <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-          </svg>
-          <div className="flex-1">
-            <p className="text-xs font-medium text-blue-900">What happens when you upload?</p>
-            <ul className="mt-1 text-xs text-blue-800 space-y-1">
-              <li>1. Text is extracted from your document</li>
-              <li>2. Content is split into searchable chunks</li>
-              <li>3. Embeddings are generated for semantic search</li>
-              <li>4. Document becomes available for chat queries</li>
-            </ul>
-          </div>
+          {isUploading && (
+            <div className="mt-6">
+              <div className="flex justify-between items-center text-sm font-medium text-gray-700 mb-1">
+                <span>Uploading...</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div className="bg-blue-600 h-2 rounded-full transition-all" style={{ width: `${uploadProgress}%` }} />
+              </div>
+            </div>
+          )}
+
+          {uploadSuccess && (
+            <div className="mt-6 p-4 bg-green-50 text-green-800 border border-green-200 rounded-lg text-sm">
+              {uploadSuccess}
+            </div>
+          )}
+
+          {uploadError && (
+            <div className="mt-6 p-4 bg-red-50 text-red-800 border border-red-200 rounded-lg text-sm">
+              {uploadError}
+            </div>
+          )}
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default DocumentUpload
+export default DocumentUpload;
