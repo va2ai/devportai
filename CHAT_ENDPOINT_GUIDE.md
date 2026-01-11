@@ -382,9 +382,9 @@ curl -X POST "http://localhost:3000/chat" \
 OPENAI_API_KEY=sk-...
 
 # Chat models
-CHAT_MODEL=gpt-4-turbo-preview
+CHAT_MODEL=gpt-5.1
 CHAT_TEMPERATURE=0.3
-VERIFICATION_MODEL=gpt-4-turbo-preview
+VERIFICATION_MODEL=gpt-5.1
 VERIFICATION_TEMPERATURE=0.2
 
 # Tracing
@@ -397,9 +397,9 @@ JAEGER_PORT=6831
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `chat_model` | gpt-4-turbo-preview | Model for draft generation |
+| `chat_model` | gpt-5.1 | Model for draft generation |
 | `chat_temperature` | 0.3 | Lower = more deterministic |
-| `verification_model` | gpt-4-turbo-preview | Model for verification |
+| `verification_model` | gpt-5.1 | Model for verification |
 | `verification_temperature` | 0.2 | Even lower for fact-checking |
 | `enable_tracing` | true | Enable OpenTelemetry |
 | `jaeger_host` | localhost | Jaeger collector host |
@@ -617,3 +617,5 @@ docker run -d --name jaeger \
 **Version**: 0.2.0
 **Last Updated**: January 2025
 **Status**: Production Ready ✅
+
+

@@ -25,11 +25,41 @@ class Settings(BaseSettings):
     chunk_overlap: int = 200
     max_file_size_mb: int = 50
     allowed_file_types: list = ["application/pdf", "text/plain"]
+    allowed_file_extensions: list = [
+        ".bmp",
+        ".csv",
+        ".doc",
+        ".docx",
+        ".eml",
+        ".epub",
+        ".heic",
+        ".html",
+        ".jpeg",
+        ".jpg",
+        ".md",
+        ".msg",
+        ".odt",
+        ".org",
+        ".p7s",
+        ".pdf",
+        ".png",
+        ".ppt",
+        ".pptx",
+        ".rst",
+        ".rtf",
+        ".tif",
+        ".tiff",
+        ".tsv",
+        ".txt",
+        ".xls",
+        ".xlsx",
+        ".xml",
+    ]
 
     # Chat configuration
-    chat_model: str = "gpt-4-turbo-preview"
+    chat_model: str = "gpt-5.1"
     chat_temperature: float = 0.3
-    verification_model: str = "gpt-4-turbo-preview"
+    verification_model: str = "gpt-5.1"
     verification_temperature: float = 0.2
 
     # Tracing configuration
@@ -44,3 +74,5 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
+
+

@@ -1,9 +1,8 @@
 """Document ingestion service for RAG"""
-import io
 from typing import BinaryIO, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import insert
-from pypdf import PdfReader
+from unstructured.partition.auto import partition
 from app.models import Document, Chunk
 from app.chunking import RecursiveCharacterTextSplitter, clean_text
 from app.embeddings import EmbeddingProvider
@@ -49,7 +48,7 @@ class DocumentIngestionService:
             ValueError: If file format is unsupported or file is empty
         """
         # Extract text from file
-        text = await self._extract_text(file, content_type)
+        text = await self._extract_text(file, filename, content_type)
 
         if not text or not text.strip():
             raise ValueError("File is empty or contains no readable text")
@@ -96,9 +95,9 @@ class DocumentIngestionService:
 
         return document_id, len(chunks)
 
-    async def _extract_text(self, file: BinaryIO, content_type: str) -> str:
+    async def _extract_text(self, file: BinaryIO, filename: str, content_type: str) -> str:
         """
-        Extract text from file based on content type
+        Extract text from file using Unstructured
 
         Args:
             file: File object
@@ -108,38 +107,25 @@ class DocumentIngestionService:
             Extracted text
 
         Raises:
-            ValueError: If format is unsupported
+            ValueError: If format is unsupported or parsing fails
         """
-        if content_type == "application/pdf":
-            return await self._extract_from_pdf(file)
-        elif content_type == "text/plain":
-            return await self._extract_from_text(file)
-        else:
-            raise ValueError(f"Unsupported file format: {content_type}")
-
-    async def _extract_from_pdf(self, file: BinaryIO) -> str:
-        """Extract text from PDF file"""
         try:
-            # Read PDF file
-            pdf_reader = PdfReader(file)
-
-            # Extract text from all pages
-            text_parts = []
-            for page_num, page in enumerate(pdf_reader.pages):
-                text = page.extract_text()
-                if text:
-                    text_parts.append(f"[Page {page_num + 1}]\n{text}")
-
-            return "\n".join(text_parts)
+            file.seek(0)
+            elements = partition(
+                file=file,
+                filename=filename,
+                content_type=content_type,
+                include_page_breaks=True,
+            )
+            return self._elements_to_text(elements)
         except Exception as e:
-            raise ValueError(f"Error reading PDF file: {str(e)}")
+            raise ValueError(f"Error parsing file with Unstructured: {str(e)}")
 
-    async def _extract_from_text(self, file: BinaryIO) -> str:
-        """Extract text from plain text file"""
-        try:
-            content = file.read()
-            if isinstance(content, bytes):
-                return content.decode("utf-8")
-            return content
-        except Exception as e:
-            raise ValueError(f"Error reading text file: {str(e)}")
+    def _elements_to_text(self, elements) -> str:
+        """Convert Unstructured elements to a single text blob"""
+        text_parts = []
+        for element in elements or []:
+            text = getattr(element, "text", None)
+            if text:
+                text_parts.append(text)
+        return "\n".join(text_parts)

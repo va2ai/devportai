@@ -142,9 +142,9 @@ POST /chat
 #### 5. **Configuration** (`config.py` updates)
 ```python
 # Chat settings
-chat_model: str = "gpt-4-turbo-preview"
+chat_model: str = "gpt-5.1"
 chat_temperature: float = 0.3
-verification_model: str = "gpt-4-turbo-preview"
+verification_model: str = "gpt-5.1"
 verification_temperature: float = 0.2
 
 # Tracing
@@ -545,8 +545,8 @@ OPENAI_API_KEY=sk-...
 EMBEDDING_PROVIDER=openai
 
 # Chat models
-CHAT_MODEL=gpt-4-turbo-preview
-VERIFICATION_MODEL=gpt-4-turbo-preview
+CHAT_MODEL=gpt-5.1
+VERIFICATION_MODEL=gpt-5.1
 
 # Tracing
 ENABLE_TRACING=true
@@ -670,3 +670,5 @@ Successfully implemented a **production-grade** Generate-then-Verify chat pipeli
 **Implementation Date**: January 2025
 **Status**: ✅ Production Ready
 **Version**: 0.2.0
+
+

@@ -1,5 +1,6 @@
 """Main FastAPI application entry point"""
 import os
+from pathlib import Path
 from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -19,6 +20,7 @@ from app.retrieval import DocumentRetrievalService
 from app.chat_service import ChatService
 from app.embeddings import get_embedding_provider
 from app.tracing import instrument_app
+from app.config import settings
 
 app = FastAPI(
     title="RAG Fact-Check API",
@@ -75,10 +77,10 @@ async def ingest_document(
     db_session: AsyncSession = Depends(get_db),
 ):
     """
-    Ingest a document (PDF or TXT) and generate embeddings
+    Ingest a document (supported by Unstructured) and generate embeddings
 
     Args:
-        file: The file to ingest (PDF or TXT format)
+        file: The file to ingest (supported format)
         db_session: Database session
 
     Returns:
@@ -89,10 +91,18 @@ async def ingest_document(
     """
     try:
         # Validate file type
-        if file.content_type not in ["application/pdf", "text/plain"]:
+        content_type = file.content_type or ""
+        extension = Path(file.filename or "").suffix.lower()
+        allowed_types = set(settings.allowed_file_types)
+        allowed_exts = set(settings.allowed_file_extensions)
+
+        if content_type not in allowed_types and extension not in allowed_exts:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unsupported file type: {file.content_type}. Supported: PDF, TXT",
+                detail=(
+                    f"Unsupported file type: {content_type or 'unknown'} "
+                    f"(extension: {extension or 'none'})."
+                ),
             )
 
         # Read file content
@@ -108,7 +118,7 @@ async def ingest_document(
         document_id, chunk_count = await ingestion_service.ingest_file(
             file=file_obj,
             filename=file.filename,
-            content_type=file.content_type,
+            content_type=content_type,
             db_session=db_session,
         )
 

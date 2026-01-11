@@ -3,7 +3,7 @@
 ## Overview
 
 A production-ready Retrieval-Augmented Generation (RAG) system has been implemented with:
-- Document ingestion (PDF/TXT)
+- Document ingestion (multi-format via Unstructured)
 - Text chunking with intelligent splitting
 - Vector embedding generation
 - Semantic search with cosine similarity
@@ -18,9 +18,9 @@ A production-ready Retrieval-Augmented Generation (RAG) system has been implemen
 ### Data Flow
 
 ```
-User Upload (PDF/TXT)
+User Upload (Supported File)
     ↓
-Text Extraction (pypdf)
+Text Extraction (Unstructured)
     ↓
 Text Cleaning & Normalization
     ↓
@@ -59,8 +59,8 @@ Return Top-K Results
   - Normalize unicode
 
 #### 3. **Document Ingestion Service** (`app/ingestion.py`)
-- **File Support**: PDF and TXT formats
-- **PDF Extraction**: Page-aware text extraction with page markers
+- **File Support**: Unstructured-supported formats (PDF, Office, images, HTML, email, and more)
+- **Parsing**: Unstructured multi-format extraction with page breaks
 - **Processing Pipeline**:
   1. File validation (type, size)
   2. Text extraction
@@ -71,7 +71,7 @@ Return Top-K Results
 - **Error Handling**: Graceful error messages for:
   - Empty files
   - Unsupported formats
-  - PDF corruption
+  - Parsing failures
   - Text extraction failures
 
 #### 4. **Retrieval Service** (`app/retrieval.py`)
@@ -231,6 +231,7 @@ CHUNK_OVERLAP=200
 # File Handling
 MAX_FILE_SIZE_MB=50
 ALLOWED_FILE_TYPES=application/pdf,text/plain
+ALLOWED_FILE_EXTENSIONS=.bmp,.csv,.doc,.docx,.eml,.epub,.heic,.html,.jpeg,.jpg,.md,.msg,.odt,.org,.p7s,.pdf,.png,.ppt,.pptx,.rst,.rtf,.tif,.tiff,.tsv,.txt,.xls,.xlsx,.xml
 ```
 
 ---
@@ -387,14 +388,14 @@ Create chunks with overlap:
 ### File Upload Errors
 ```json
 {
-  "detail": "Unsupported file type: image/png. Supported: PDF, TXT"
+  "detail": "Unsupported file type: image/png (extension: .png)."
 }
 ```
 
-### PDF Extraction Errors
+### Parsing Errors
 ```json
 {
-  "detail": "Error reading PDF file: Cannot read corrupted PDF"
+  "detail": "Error parsing file with Unstructured: Cannot read corrupted file"
 }
 ```
 

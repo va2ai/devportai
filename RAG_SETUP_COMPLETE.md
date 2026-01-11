@@ -11,7 +11,7 @@
 A complete **Retrieval-Augmented Generation (RAG)** core with:
 
 1. **Document Ingestion Pipeline**
-   - PDF and TXT file upload
+   - Multi-format file upload (PDF, Office, images, HTML, email, and more)
    - Smart text chunking with overlap
    - Batch vector embedding generation
    - Database storage with metadata
@@ -67,7 +67,7 @@ RAG_SETUP_COMPLETE.md    - This file
 
 ### Updated Files
 ```
-requirements.txt    - Added: pypdf, asyncpg, openai, pgvector, tiktoken
+requirements.txt    - Added: unstructured, asyncpg, openai, pgvector, tiktoken
 pyproject.toml      - Added: Same dependencies + pytest-asyncio, httpx
 init-db.sql         - Updated: pgvector extension, updated schema
 .env.example        - Updated: RAG-specific settings
@@ -79,7 +79,7 @@ backend/README.md   - Updated: Comprehensive documentation
 ## 🚀 API Endpoints
 
 ### POST /api/v1/ingest
-Upload a document (PDF or TXT)
+Upload a document (supported by Unstructured)
 ```bash
 curl -X POST "http://localhost:3000/api/v1/ingest" \
   -F "file=@document.pdf"
@@ -169,12 +169,12 @@ CREATE TABLE chunks (
 ## 🏗️ Architecture Diagram
 
 ```
-User Upload (PDF/TXT)
+User Upload (Supported File)
     ↓
 FastAPI /api/v1/ingest Endpoint
     ↓
 DocumentIngestionService
-    ├→ extract_text (pypdf for PDF, decode for TXT)
+    ├→ extract_text (unstructured partition)
     ├→ clean_text (normalize, remove control chars)
     ├→ split_text (RecursiveCharacterTextSplitter)
     └→ embed_batch (OpenAI or Mock provider)
@@ -243,7 +243,7 @@ Chunks: ["chunk1 (0-1000)", "chunk2 (800-1800)", "chunk3 (1600-2600)"]
 ### 3. Document Ingestion (`ingestion.py`)
 Complete pipeline:
 1. Validate file type and size
-2. Extract text from PDF or TXT
+2. Extract text from supported formats
 3. Clean and normalize text
 4. Split into chunks with overlap
 5. Generate embeddings in batches
@@ -251,7 +251,7 @@ Complete pipeline:
 
 **Handles**:
 - Empty files (raises ValueError)
-- Corrupted PDFs (catches extraction errors)
+- Parsing failures (catches extraction errors)
 - Unsupported formats (validates content type)
 - Large files (configurable size limit)
 
@@ -331,6 +331,7 @@ CHUNK_OVERLAP=200
 # Files
 MAX_FILE_SIZE_MB=50
 ALLOWED_FILE_TYPES=application/pdf,text/plain
+ALLOWED_FILE_EXTENSIONS=.bmp,.csv,.doc,.docx,.eml,.epub,.heic,.html,.jpeg,.jpg,.md,.msg,.odt,.org,.p7s,.pdf,.png,.ppt,.pptx,.rst,.rtf,.tif,.tiff,.tsv,.txt,.xls,.xlsx,.xml
 ```
 
 ---
@@ -447,7 +448,7 @@ SELECT embedding IS NOT NULL FROM chunks LIMIT 1;  -- true
 ✅ **Satisfied**
 - Empty files rejected (400)
 - Unsupported formats rejected (400)
-- PDF errors handled gracefully
+- Parsing errors handled gracefully
 - Invalid queries caught
 
 **Tests**:
@@ -473,7 +474,7 @@ User: "Upload machine_learning_guide.pdf"
   ↓
 FastAPI validates file
   ↓
-pypdf extracts: "Machine learning is a subset of AI..."
+unstructured extracts: "Machine learning is a subset of AI..."
   ↓
 Chunker splits into: [chunk1, chunk2, ..., chunk45]
   ↓
@@ -666,7 +667,7 @@ devport/
 - Ready for LLM integration
 
 **What works**:
-- Upload PDF/TXT documents ✅
+- Upload multi-format documents ✅
 - Extract and chunk text intelligently ✅
 - Generate vector embeddings ✅
 - Store vectors in PostgreSQL ✅

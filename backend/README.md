@@ -7,8 +7,8 @@ FastAPI backend for the RAG Fact-Check application with document ingestion and s
 ### Services
 
 1. **Document Ingestion Service** (`app/ingestion.py`)
-   - Accepts PDF and TXT files
-   - Extracts text from PDFs using pypdf
+   - Accepts supported file types (PDF, Office, images, HTML, email, and more)
+   - Extracts text using Unstructured
    - Splits text into chunks using RecursiveCharacterTextSplitter
    - Generates embeddings for each chunk using the embedding provider
    - Stores documents and chunks in PostgreSQL with pgvector
@@ -55,7 +55,7 @@ Content-Type: multipart/form-data
 file: <binary file>
 ```
 
-Upload a PDF or TXT file for processing.
+Upload any supported file type for processing.
 
 **Response:**
 ```json
@@ -159,6 +159,7 @@ CHUNK_SIZE=1000        # Characters per chunk
 CHUNK_OVERLAP=200      # Overlap between chunks
 MAX_FILE_SIZE_MB=50
 ALLOWED_FILE_TYPES=application/pdf,text/plain
+ALLOWED_FILE_EXTENSIONS=.bmp,.csv,.doc,.docx,.eml,.epub,.heic,.html,.jpeg,.jpg,.md,.msg,.odt,.org,.p7s,.pdf,.png,.ppt,.pptx,.rst,.rtf,.tif,.tiff,.tsv,.txt,.xls,.xlsx,.xml
 ```
 
 ## 🚀 Development
@@ -280,14 +281,14 @@ Chunk 2: [900-1900 chars]
 ### Unsupported Formats
 ```json
 {
-  "detail": "Unsupported file type: image/jpeg. Supported: PDF, TXT"
+  "detail": "Unsupported file type: image/jpeg (extension: .jpg)."
 }
 ```
 
-### PDF Extraction Errors
+### Parsing Errors
 ```json
 {
-  "detail": "Error reading PDF file: [specific error]"
+  "detail": "Error parsing file with Unstructured: [specific error]"
 }
 ```
 
@@ -296,7 +297,7 @@ Chunk 2: [900-1900 chars]
 1. **File Size**: Max 50MB (configurable)
 2. **Embeddings**: OpenAI has rate limits; mock provider for testing
 3. **Vector Dimension**: Fixed at 1536 (OpenAI standard)
-4. **File Types**: Only PDF and TXT supported
+4. **File Types**: Limited to Unstructured-supported formats
 5. **Query Length**: Max 1000 characters
 
 ## 🔄 Future Enhancements
@@ -316,7 +317,7 @@ Chunk 2: [900-1900 chars]
 - **SQLAlchemy**: ORM with async support
 - **asyncpg**: PostgreSQL driver for async
 - **pgvector**: Vector similarity search
-- **pypdf**: PDF text extraction
+- **unstructured**: Multi-format document parsing
 - **openai**: Embedding generation
 - **pydantic**: Data validation
 

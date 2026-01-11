@@ -228,7 +228,7 @@ Respond with JSON in this exact format:
             try:
                 # Call LLM
                 response = await self.client.chat.completions.create(
-                    model="gpt-4-turbo-preview",
+                    model=settings.chat_model,
                     messages=[
                         {
                             "role": "system",
@@ -239,7 +239,7 @@ Respond with JSON in this exact format:
                             "content": prompt,
                         },
                     ],
-                    temperature=0.3,
+                    temperature=settings.chat_temperature,
                     max_tokens=1000,
                 )
 
@@ -293,7 +293,7 @@ Respond with JSON in this exact format:
             try:
                 # Call LLM for verification
                 response = await self.client.chat.completions.create(
-                    model="gpt-4-turbo-preview",
+                    model=settings.verification_model,
                     messages=[
                         {
                             "role": "system",
@@ -304,7 +304,7 @@ Respond with JSON in this exact format:
                             "content": prompt,
                         },
                     ],
-                    temperature=0.2,
+                    temperature=settings.verification_temperature,
                     max_tokens=1000,
                 )
 
@@ -430,3 +430,4 @@ Respond with JSON in this exact format:
             unsupported_claims=unsupported,
             corrections=verification_result.get("corrections", []),
         )
+

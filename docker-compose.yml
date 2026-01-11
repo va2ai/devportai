@@ -41,9 +41,9 @@ services:
       CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
       # Chat Configuration
-      CHAT_MODEL: ${CHAT_MODEL:-gpt-4-turbo-preview}
+      CHAT_MODEL: ${CHAT_MODEL:-gpt-5.1}
       CHAT_TEMPERATURE: ${CHAT_TEMPERATURE:-0.3}
-      VERIFICATION_MODEL: ${VERIFICATION_MODEL:-gpt-4-turbo-preview}
+      VERIFICATION_MODEL: ${VERIFICATION_MODEL:-gpt-5.1}
       VERIFICATION_TEMPERATURE: ${VERIFICATION_TEMPERATURE:-0.2}
       # Tracing Configuration
       ENABLE_TRACING: ${ENABLE_TRACING:-true}
@@ -80,3 +80,5 @@ volumes:
 networks:
   rag_network:
     driver: bridge
+
+

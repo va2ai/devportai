@@ -370,9 +370,9 @@ Runs 4 scenario tests:
 OPENAI_API_KEY=sk-...
 
 # Chat Models
-CHAT_MODEL=gpt-4-turbo-preview
+CHAT_MODEL=gpt-5.1
 CHAT_TEMPERATURE=0.3
-VERIFICATION_MODEL=gpt-4-turbo-preview
+VERIFICATION_MODEL=gpt-5.1
 VERIFICATION_TEMPERATURE=0.2
 
 # Tracing
@@ -637,3 +637,5 @@ All acceptance criteria met. Ready for deployment and fact-checking phase.
 
 **Version**: 0.2.0
 **Last Updated**: January 2025
+
+
