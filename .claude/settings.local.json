@@ -4,7 +4,9 @@
       "Bash(timeout 180 docker-compose build:*)",
       "Bash(docker build:*)",
       "Bash(docker-compose up:*)",
-      "Bash(docker-compose ps:*)"
+      "Bash(docker-compose ps:*)",
+      "Bash(docker rmi:*)",
+      "Bash(docker-compose build:*)"
     ]
   }
 }
