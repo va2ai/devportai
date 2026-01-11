@@ -62,7 +62,7 @@ function App() {
         body: JSON.stringify({
           query,
           top_k: 5,
-          similarity_threshold: 0.5,
+          similarity_threshold: 0.1,
         }),
       })
 
