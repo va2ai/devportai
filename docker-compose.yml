@@ -33,6 +33,22 @@ services:
       DB_USER: ${DB_USER:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       DEBUG: ${DEBUG:-False}
+      # OpenAI Configuration
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      EMBEDDING_PROVIDER: ${EMBEDDING_PROVIDER:-openai}
+      # RAG Configuration
+      CHUNK_SIZE: ${CHUNK_SIZE:-1000}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
+      MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+      # Chat Configuration
+      CHAT_MODEL: ${CHAT_MODEL:-gpt-4-turbo-preview}
+      CHAT_TEMPERATURE: ${CHAT_TEMPERATURE:-0.3}
+      VERIFICATION_MODEL: ${VERIFICATION_MODEL:-gpt-4-turbo-preview}
+      VERIFICATION_TEMPERATURE: ${VERIFICATION_TEMPERATURE:-0.2}
+      # Tracing Configuration
+      ENABLE_TRACING: ${ENABLE_TRACING:-true}
+      JAEGER_HOST: ${JAEGER_HOST:-localhost}
+      JAEGER_PORT: ${JAEGER_PORT:-6831}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     depends_on:
