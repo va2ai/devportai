@@ -13,14 +13,17 @@ from app.schemas import (
     RetrievalResultItem,
     ErrorResponse,
 )
+from app.chat_schemas import ChatRequest, ChatResponse
 from app.ingestion import DocumentIngestionService
 from app.retrieval import DocumentRetrievalService
+from app.chat_service import ChatService
 from app.embeddings import get_embedding_provider
+from app.tracing import instrument_app
 
 app = FastAPI(
     title="RAG Fact-Check API",
-    description="API for RAG-based fact checking",
-    version="0.1.0"
+    description="API for RAG-based fact checking with verification",
+    version="0.2.0"
 )
 
 # Add CORS middleware
@@ -36,6 +39,10 @@ app.add_middleware(
 embedding_provider = get_embedding_provider()
 ingestion_service = DocumentIngestionService(embedding_provider)
 retrieval_service = DocumentRetrievalService(embedding_provider)
+chat_service = ChatService(embedding_provider, retrieval_service)
+
+# Instrument app with OpenTelemetry
+instrument_app(app)
 
 
 @app.on_event("startup")
@@ -166,3 +173,52 @@ async def retrieve_documents(
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")
+
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(
+    request: ChatRequest,
+    db_session: AsyncSession = Depends(get_db),
+):
+    """
+    Chat endpoint with two-step Generate-then-Verify pipeline
+
+    This endpoint:
+    1. Retrieves relevant documents using semantic search
+    2. Generates a draft answer using LLM with only retrieved context
+    3. Verifies the answer using an adversarial LLM pass
+    4. Returns verified response with citations and confidence
+
+    Fallback behavior:
+    - If no documents are retrieved, returns "I don't know" response
+    - If similarity scores are too low, returns refusal
+    - If verification fails, returns low confidence
+
+    Args:
+        request: ChatRequest with query and parameters
+        db_session: Database session
+
+    Returns:
+        ChatResponse with verified answer, citations, and confidence
+
+    Raises:
+        HTTPException: If chat pipeline fails
+    """
+    try:
+        # Execute chat pipeline
+        verified_response, retrieval_status, trace_id = await chat_service.chat(
+            query=request.query,
+            db_session=db_session,
+            top_k=request.top_k,
+            similarity_threshold=request.similarity_threshold,
+        )
+
+        return ChatResponse(
+            query=request.query,
+            response=verified_response,
+            trace_id=trace_id,
+            retrieval_status=retrieval_status,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error in chat: {str(e)}")

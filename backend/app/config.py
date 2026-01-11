@@ -26,6 +26,17 @@ class Settings(BaseSettings):
     max_file_size_mb: int = 50
     allowed_file_types: list = ["application/pdf", "text/plain"]
 
+    # Chat configuration
+    chat_model: str = "gpt-4-turbo-preview"
+    chat_temperature: float = 0.3
+    verification_model: str = "gpt-4-turbo-preview"
+    verification_temperature: float = 0.2
+
+    # Tracing configuration
+    enable_tracing: bool = True
+    jaeger_host: str = "localhost"
+    jaeger_port: int = 6831
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"
