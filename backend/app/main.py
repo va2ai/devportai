@@ -1,0 +1,168 @@
+"""Main FastAPI application entry point"""
+import os
+from fastapi import FastAPI, UploadFile, File, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import engine, get_db
+from app.models import Base
+from app.schemas import (
+    IngestResponse,
+    RetrievalRequest,
+    RetrievalResponse,
+    RetrievalResultItem,
+    ErrorResponse,
+)
+from app.ingestion import DocumentIngestionService
+from app.retrieval import DocumentRetrievalService
+from app.embeddings import get_embedding_provider
+
+app = FastAPI(
+    title="RAG Fact-Check API",
+    description="API for RAG-based fact checking",
+    version="0.1.0"
+)
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize services
+embedding_provider = get_embedding_provider()
+ingestion_service = DocumentIngestionService(embedding_provider)
+retrieval_service = DocumentRetrievalService(embedding_provider)
+
+
+@app.on_event("startup")
+async def startup():
+    """Create database tables on startup"""
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint with database connectivity verification"""
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text("SELECT 1"))
+        return {"status": "ok", "db": "connected"}
+    except Exception as e:
+        return {"status": "error", "db": "disconnected", "error": str(e)}
+
+
+@app.get("/")
+async def root():
+    """Root endpoint"""
+    return {"message": "RAG Fact-Check API", "version": "0.1.0"}
+
+
+@app.post("/api/v1/ingest", response_model=IngestResponse)
+async def ingest_document(
+    file: UploadFile = File(...),
+    db_session: AsyncSession = Depends(get_db),
+):
+    """
+    Ingest a document (PDF or TXT) and generate embeddings
+
+    Args:
+        file: The file to ingest (PDF or TXT format)
+        db_session: Database session
+
+    Returns:
+        IngestResponse with document ID and chunk count
+
+    Raises:
+        HTTPException: If file format is unsupported or ingestion fails
+    """
+    try:
+        # Validate file type
+        if file.content_type not in ["application/pdf", "text/plain"]:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unsupported file type: {file.content_type}. Supported: PDF, TXT",
+            )
+
+        # Read file content
+        content = await file.read()
+        if not content:
+            raise HTTPException(status_code=400, detail="File is empty")
+
+        # Create file-like object
+        import io
+        file_obj = io.BytesIO(content)
+
+        # Ingest document
+        document_id, chunk_count = await ingestion_service.ingest_file(
+            file=file_obj,
+            filename=file.filename,
+            content_type=file.content_type,
+            db_session=db_session,
+        )
+
+        return IngestResponse(
+            document_id=document_id,
+            filename=file.filename,
+            chunk_count=chunk_count,
+            message="Document ingested successfully",
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error ingesting document: {str(e)}")
+
+
+@app.post("/api/v1/retrieve", response_model=RetrievalResponse)
+async def retrieve_documents(
+    request: RetrievalRequest,
+    db_session: AsyncSession = Depends(get_db),
+):
+    """
+    Retrieve relevant documents using semantic search
+
+    Args:
+        request: RetrievalRequest with query and optional top_k
+        db_session: Database session
+
+    Returns:
+        RetrievalResponse with list of matching chunks
+
+    Raises:
+        HTTPException: If search fails
+    """
+    try:
+        # Perform retrieval
+        results = await retrieval_service.retrieve(
+            query=request.query,
+            db_session=db_session,
+            top_k=request.top_k,
+        )
+
+        # Convert to response format
+        result_items = [
+            RetrievalResultItem(
+                chunk_id=result.chunk_id,
+                document_id=result.document_id,
+                document_title=result.document_title,
+                document_filename=result.document_filename,
+                content=result.content,
+                similarity_score=result.similarity_score,
+                chunk_index=result.chunk_index,
+            )
+            for result in results
+        ]
+
+        return RetrievalResponse(
+            query=request.query,
+            result_count=len(result_items),
+            results=result_items,
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error retrieving documents: {str(e)}")

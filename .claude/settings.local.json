@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(timeout 180 docker-compose build:*)",
+      "Bash(docker build:*)",
+      "Bash(docker-compose up:*)"
+    ]
+  }
+}

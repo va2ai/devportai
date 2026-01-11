@@ -1,0 +1,7 @@
+FROM postgres:15-alpine
+
+# Update packages and install pgvector extension from PostgreSQL repository
+RUN apk add --no-cache postgresql-contrib
+
+# The vector extension will be installed during database initialization
+EXPOSE 5432
