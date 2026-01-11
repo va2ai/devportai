@@ -2,8 +2,7 @@
 from typing import List
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
-from sqlalchemy.dialects.postgresql import array
+from sqlalchemy import select, func, text
 from app.models import Chunk, Document
 from app.embeddings import EmbeddingProvider
 
@@ -81,24 +80,29 @@ class DocumentRetrievalService:
         Returns:
             List of RetrievalResult objects
         """
-        # Build query using pgvector <-> operator for cosine similarity
-        stmt = (
-            select(
-                Chunk.id,
-                Chunk.document_id,
-                Chunk.content,
-                Chunk.chunk_index,
-                Document.title,
-                Document.filename,
-                # Calculate similarity score (1 - distance) for cosine similarity
-                (1 - (Chunk.embedding.cosine_distance(query_embedding))).label("similarity"),
-            )
-            .join(Document, Chunk.document_id == Document.id)
-            .order_by((1 - (Chunk.embedding.cosine_distance(query_embedding))).desc())
-            .limit(top_k)
-        )
+        import json
 
-        result = await db_session.execute(stmt)
+        # Convert embedding to JSON string for pgvector
+        query_vector_str = json.dumps(query_embedding)
+
+        # Use raw SQL for pgvector operations
+        # The <-> operator returns cosine distance, so we use 1 - distance for similarity
+        sql_query = text(f"""
+            SELECT
+                c.id,
+                c.document_id,
+                c.content,
+                c.chunk_index,
+                d.title,
+                d.filename,
+                1 - (c.embedding <-> '{query_vector_str}'::vector) as similarity
+            FROM chunks c
+            JOIN documents d ON c.document_id = d.id
+            ORDER BY c.embedding <-> '{query_vector_str}'::vector
+            LIMIT :top_k
+        """)
+
+        result = await db_session.execute(sql_query, {"top_k": top_k})
         rows = result.fetchall()
 
         results = []
