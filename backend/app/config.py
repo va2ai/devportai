@@ -1,4 +1,5 @@
 """Application configuration from environment variables"""
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -24,8 +25,8 @@ class Settings(BaseSettings):
     chunk_size: int = 1000
     chunk_overlap: int = 200
     max_file_size_mb: int = 50
-    allowed_file_types: list = ["application/pdf", "text/plain"]
-    allowed_file_extensions: list = [
+    allowed_file_types: list[str] = ["application/pdf", "text/plain"]
+    allowed_file_extensions: list[str] = [
         ".bmp",
         ".csv",
         ".doc",
@@ -47,7 +48,6 @@ class Settings(BaseSettings):
         ".pptx",
         ".rst",
         ".rtf",
-        ".tif",
         ".tiff",
         ".tsv",
         ".txt",
@@ -55,6 +55,14 @@ class Settings(BaseSettings):
         ".xlsx",
         ".xml",
     ]
+
+    @field_validator("allowed_file_types", "allowed_file_extensions", mode="before")
+    @classmethod
+    def _split_csv_list(cls, value):
+        if isinstance(value, str):
+            parts = [item.strip() for item in value.split(",")]
+            return [item for item in parts if item]
+        return value
 
     # Chat configuration
     chat_model: str = "gpt-5.1"

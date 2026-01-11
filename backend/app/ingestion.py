@@ -1,7 +1,7 @@
 """Document ingestion service for RAG"""
-from typing import BinaryIO, Tuple
+from typing import BinaryIO, Tuple, Dict, Any
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import insert
+from openai import AsyncOpenAI
 from unstructured.partition.auto import partition
 from app.models import Document, Chunk
 from app.chunking import RecursiveCharacterTextSplitter, clean_text
@@ -20,6 +20,7 @@ class DocumentIngestionService:
             embedding_provider: Provider for generating embeddings
         """
         self.embedding_provider = embedding_provider
+        self.client = AsyncOpenAI(api_key=settings.openai_api_key)
         self.splitter = RecursiveCharacterTextSplitter(
             chunk_size=settings.chunk_size,
             chunk_overlap=settings.chunk_overlap,
@@ -31,7 +32,7 @@ class DocumentIngestionService:
         filename: str,
         content_type: str,
         db_session: AsyncSession,
-    ) -> Tuple[int, int]:
+    ) -> Tuple[int, int, Dict[str, Any]]:
         """
         Ingest a file (PDF or TXT) and store embeddings
 
@@ -53,8 +54,11 @@ class DocumentIngestionService:
         if not text or not text.strip():
             raise ValueError("File is empty or contains no readable text")
 
+        summary = self._summarize_text(text)
+
         # Clean text
         text = clean_text(text)
+        summary["llm_summary"] = await self._generate_llm_summary(text)
 
         # Split into chunks
         chunks = self.splitter.split_text(text)
@@ -93,7 +97,7 @@ class DocumentIngestionService:
         db_session.add_all(chunk_records)
         await db_session.commit()
 
-        return document_id, len(chunks)
+        return document_id, len(chunks), summary
 
     async def _extract_text(self, file: BinaryIO, filename: str, content_type: str) -> str:
         """
@@ -113,7 +117,6 @@ class DocumentIngestionService:
             file.seek(0)
             elements = partition(
                 file=file,
-                filename=filename,
                 content_type=content_type,
                 include_page_breaks=True,
             )
@@ -129,3 +132,42 @@ class DocumentIngestionService:
             if text:
                 text_parts.append(text)
         return "\n".join(text_parts)
+
+    def _summarize_text(self, text: str) -> Dict[str, Any]:
+        """Compute basic text statistics before cleaning"""
+        char_count = len(text)
+        word_count = len(text.split()) if text else 0
+        line_count = text.count("\n") + 1 if text else 0
+        page_breaks = text.count("\f")
+        page_count = page_breaks + 1 if page_breaks > 0 else None
+        return {
+            "char_count": char_count,
+            "word_count": word_count,
+            "line_count": line_count,
+            "page_count": page_count,
+        }
+
+    async def _generate_llm_summary(self, text: str) -> str | None:
+        """Generate a 1-paragraph summary using the chat model"""
+        if not settings.openai_api_key:
+            return None
+        if not text:
+            return None
+        truncated = text[:8000]
+        prompt = (
+            "Summarize the following document in one concise paragraph. "
+            "Focus on key facts and purpose. Do not add information not present.\n\n"
+            f"{truncated}"
+        )
+        try:
+            response = await self.client.chat.completions.create(
+                model=settings.chat_model,
+                temperature=0.2,
+                messages=[
+                    {"role": "system", "content": "You are a precise summarization assistant."},
+                    {"role": "user", "content": prompt},
+                ],
+            )
+            return response.choices[0].message.content.strip()
+        except Exception:
+            return None

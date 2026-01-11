@@ -9,6 +9,7 @@ from app.database import engine, get_db
 from app.models import Base
 from app.schemas import (
     IngestResponse,
+    FileSummary,
     RetrievalRequest,
     RetrievalResponse,
     RetrievalResultItem,
@@ -113,9 +114,10 @@ async def ingest_document(
         # Create file-like object
         import io
         file_obj = io.BytesIO(content)
+        file_obj.name = file.filename
 
         # Ingest document
-        document_id, chunk_count = await ingestion_service.ingest_file(
+        document_id, chunk_count, summary = await ingestion_service.ingest_file(
             file=file_obj,
             filename=file.filename,
             content_type=content_type,
@@ -126,6 +128,15 @@ async def ingest_document(
             document_id=document_id,
             filename=file.filename,
             chunk_count=chunk_count,
+            summary=FileSummary(
+                content_type=content_type,
+                file_size_bytes=len(content),
+                char_count=summary["char_count"],
+                word_count=summary["word_count"],
+                line_count=summary["line_count"],
+                page_count=summary["page_count"],
+                llm_summary=summary.get("llm_summary"),
+            ),
             message="Document ingested successfully",
         )
 
@@ -159,6 +170,7 @@ async def retrieve_documents(
             query=request.query,
             db_session=db_session,
             top_k=request.top_k,
+            document_filename=request.document_filename,
         )
 
         # Convert to response format
@@ -221,6 +233,7 @@ async def chat(
             db_session=db_session,
             top_k=request.top_k,
             similarity_threshold=request.similarity_threshold,
+            document_filename=request.document_filename,
         )
 
         return ChatResponse(

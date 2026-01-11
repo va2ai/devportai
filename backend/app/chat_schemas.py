@@ -74,6 +74,10 @@ class VerifiedResponse(BaseModel):
 class ChatRequest(BaseModel):
     """Request schema for chat endpoint"""
     query: str = Field(..., min_length=1, max_length=1000, description="User query")
+    document_filename: Optional[str] = Field(
+        None,
+        description="Optional filename to scope retrieval"
+    )
     top_k: int = Field(
         default=5,
         ge=1,

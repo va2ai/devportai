@@ -10,17 +10,33 @@ class IngestRequest(BaseModel):
     pass
 
 
+class FileSummary(BaseModel):
+    """Summary of ingested file content"""
+    content_type: str = Field(..., description="MIME type of the file")
+    file_size_bytes: int = Field(..., description="Raw file size in bytes")
+    char_count: int = Field(..., description="Number of characters extracted")
+    word_count: int = Field(..., description="Number of words extracted")
+    line_count: int = Field(..., description="Number of lines extracted")
+    page_count: Optional[int] = Field(None, description="Estimated page count when available")
+    llm_summary: Optional[str] = Field(None, description="LLM-generated summary")
+
+
 class IngestResponse(BaseModel):
     """Response schema for document ingestion"""
     document_id: int = Field(..., description="ID of the ingested document")
     filename: str = Field(..., description="Original filename")
     chunk_count: int = Field(..., description="Number of chunks created")
+    summary: FileSummary = Field(..., description="Summary of extracted content")
     message: str = Field(default="Document ingested successfully")
 
 
 class RetrievalRequest(BaseModel):
     """Request schema for document retrieval"""
     query: str = Field(..., description="Search query", min_length=1, max_length=1000)
+    document_filename: Optional[str] = Field(
+        None,
+        description="Optional filename to scope retrieval"
+    )
     top_k: int = Field(default=5, ge=1, le=50, description="Number of results to return")
 
 

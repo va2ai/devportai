@@ -10,8 +10,9 @@ import TracePanel from './TracePanel'
  * - onSendMessage: function(query) => void
  * - isLoading: boolean
  * - latestTrace: object with trace data
+ * - selectedFilename: string
  */
-const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace }) => {
+const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace, selectedFilename }) => {
   const [input, setInput] = useState('')
   const messagesEndRef = useRef(null)
   const inputRef = useRef(null)
@@ -45,6 +46,12 @@ const ChatInterface = ({ messages, onSendMessage, isLoading, latestTrace }) => {
         <p className="text-blue-100 text-xs md:text-sm mt-1">
           Ask questions and get verified answers with source citations
         </p>
+        {selectedFilename && (
+          <div className="mt-2 inline-flex items-center gap-2 bg-white/15 text-white text-xs px-2 py-1 rounded">
+            <span className="opacity-90">Using:</span>
+            <span className="font-medium">{selectedFilename}</span>
+          </div>
+        )}
       </div>
 
       {/* Messages Area */}

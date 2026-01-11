@@ -77,6 +77,7 @@ Respond with JSON in this exact format:
         db_session: AsyncSession,
         top_k: int = 5,
         similarity_threshold: float = 0.5,
+        document_filename: str | None = None,
     ) -> Tuple[VerifiedResponse, str, str]:
         """
         Execute full chat pipeline: Retrieve → Generate → Verify
@@ -97,6 +98,7 @@ Respond with JSON in this exact format:
                 db_session,
                 top_k,
                 similarity_threshold,
+                document_filename,
                 main_span,
             )
 
@@ -135,6 +137,7 @@ Respond with JSON in this exact format:
         db_session: AsyncSession,
         top_k: int,
         similarity_threshold: float,
+        document_filename: str | None,
         parent_span,
     ) -> Tuple[List[SourceChunk], str]:
         """
@@ -151,6 +154,7 @@ Respond with JSON in this exact format:
                     query=query,
                     db_session=db_session,
                     top_k=top_k,
+                    document_filename=document_filename,
                 )
 
                 # Filter by similarity threshold
@@ -170,6 +174,25 @@ Respond with JSON in this exact format:
                 )
 
                 if not filtered_results:
+                    if retrieval_results:
+                        # Fallback: use top results even if below threshold
+                        fallback_results = retrieval_results[: min(3, len(retrieval_results))]
+                        source_chunks = [
+                            SourceChunk(
+                                chunk_id=r.chunk_id,
+                                document_id=r.document_id,
+                                document_filename=r.document_filename,
+                                document_title=r.document_title,
+                                content=r.content,
+                                similarity_score=r.similarity_score,
+                                chunk_index=r.chunk_index,
+                            )
+                            for r in fallback_results
+                        ]
+                        set_span_attribute(span, "result_count", len(source_chunks))
+                        set_span_status(span, "success")
+                        return source_chunks, "low_similarity"
+
                     set_span_attribute(span, "result_count", 0)
                     set_span_status(span, "error", "No results above threshold")
                     return [], "No relevant documents found"
@@ -240,7 +263,7 @@ Respond with JSON in this exact format:
                         },
                     ],
                     temperature=settings.chat_temperature,
-                    max_tokens=1000,
+                        max_completion_tokens=1000,
                 )
 
                 answer_text = response.choices[0].message.content.strip()
@@ -305,7 +328,7 @@ Respond with JSON in this exact format:
                         },
                     ],
                     temperature=settings.verification_temperature,
-                    max_tokens=1000,
+                        max_completion_tokens=1000,
                 )
 
                 # Parse verification result

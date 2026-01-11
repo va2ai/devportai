@@ -40,6 +40,8 @@ services:
       CHUNK_SIZE: ${CHUNK_SIZE:-1000}
       CHUNK_OVERLAP: ${CHUNK_OVERLAP:-200}
       MAX_FILE_SIZE_MB: ${MAX_FILE_SIZE_MB:-50}
+      ALLOWED_FILE_TYPES: ${ALLOWED_FILE_TYPES:-["application/pdf","text/plain"]}
+      ALLOWED_FILE_EXTENSIONS: ${ALLOWED_FILE_EXTENSIONS:-[".bmp",".csv",".doc",".docx",".eml",".epub",".heic",".html",".jpeg",".jpg",".md",".msg",".odt",".org",".p7s",".pdf",".png",".ppt",".pptx",".rst",".rtf",".tiff",".tsv",".txt",".xls",".xlsx",".xml"]}
       # Chat Configuration
       CHAT_MODEL: ${CHAT_MODEL:-gpt-5.1}
       CHAT_TEMPERATURE: ${CHAT_TEMPERATURE:-0.3}

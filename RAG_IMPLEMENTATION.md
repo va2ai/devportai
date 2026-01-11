@@ -231,7 +231,7 @@ CHUNK_OVERLAP=200
 # File Handling
 MAX_FILE_SIZE_MB=50
 ALLOWED_FILE_TYPES=application/pdf,text/plain
-ALLOWED_FILE_EXTENSIONS=.bmp,.csv,.doc,.docx,.eml,.epub,.heic,.html,.jpeg,.jpg,.md,.msg,.odt,.org,.p7s,.pdf,.png,.ppt,.pptx,.rst,.rtf,.tif,.tiff,.tsv,.txt,.xls,.xlsx,.xml
+ALLOWED_FILE_EXTENSIONS=.bmp,.csv,.doc,.docx,.eml,.epub,.heic,.html,.jpeg,.jpg,.md,.msg,.odt,.org,.p7s,.pdf,.png,.ppt,.pptx,.rst,.rtf,.tiff,.tsv,.txt,.xls,.xlsx,.xml
 ```
 
 ---

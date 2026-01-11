@@ -6,12 +6,28 @@ import React, { useState, useRef } from 'react'
  * Props:
  * - onUploadSuccess: function(data) => void
  * - onUploadError: function(error) => void
+ * - onSelectFilename: function(filename) => void
+ * - selectedFilename: string
+ * - isUploading: boolean
+ * - setIsUploading: function
+ * - uploadProgress: number
+ * - setUploadProgress: function
+ * - uploadedFiles: array
+ * - setUploadedFiles: function
  */
-const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
+const DocumentUpload = ({
+  onUploadSuccess,
+  onUploadError,
+  onSelectFilename,
+  selectedFilename,
+  isUploading,
+  setIsUploading,
+  uploadProgress,
+  setUploadProgress,
+  uploadedFiles,
+  setUploadedFiles,
+}) => {
   const [isDragging, setIsDragging] = useState(false)
-  const [isUploading, setIsUploading] = useState(false)
-  const [uploadProgress, setUploadProgress] = useState(0)
-  const [uploadedFiles, setUploadedFiles] = useState([])
   const fileInputRef = useRef(null)
 
   const handleDragEnter = (e) => {
@@ -46,19 +62,13 @@ const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
   }
 
   const handleFiles = async (files) => {
-    // Filter for supported file types
-    const supportedFiles = files.filter(file => {
-      const type = file.type
-      return type === 'application/pdf' || type === 'text/plain'
-    })
-
-    if (supportedFiles.length === 0) {
-      onUploadError?.('Please upload PDF or TXT files only')
+    if (files.length === 0) {
+      onUploadError?.('Please select at least one file')
       return
     }
 
     // Upload files one by one
-    for (const file of supportedFiles) {
+    for (const file of files) {
       await uploadFile(file)
     }
   }
@@ -103,6 +113,7 @@ const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
         size: file.size,
         documentId: data.document_id,
         chunkCount: data.chunk_count,
+        summary: data.summary,
         timestamp: new Date().toISOString(),
       }, ...prev])
 
@@ -148,7 +159,7 @@ const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
           ref={fileInputRef}
           type="file"
           multiple
-          accept=".pdf,.txt"
+          accept="*/*"
           onChange={handleFileSelect}
           className="hidden"
         />
@@ -182,7 +193,7 @@ const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
               Drop files here or click to browse
             </p>
             <p className="mt-1 text-xs text-gray-500">
-              PDF or TXT files up to 50MB
+              Supported files up to 50MB
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -221,6 +232,24 @@ const DocumentUpload = ({ onUploadSuccess, onUploadError }) => {
                     <span>{file.chunkCount} chunks</span>
                     <span>•</span>
                     <span>Doc ID: {file.documentId}</span>
+                  </div>
+                  {file.summary?.llm_summary && (
+                    <p className="mt-2 text-xs text-gray-700 line-clamp-3">
+                      {file.summary.llm_summary}
+                    </p>
+                  )}
+                  <div className="mt-2">
+                    <button
+                      type="button"
+                      onClick={() => onSelectFilename?.(file.name)}
+                      className={`text-xs font-medium px-2 py-1 rounded ${
+                        selectedFilename === file.name
+                          ? 'bg-blue-600 text-white'
+                          : 'bg-white text-blue-700 border border-blue-200 hover:bg-blue-50'
+                      }`}
+                    >
+                      {selectedFilename === file.name ? 'Selected for chat' : 'Use in chat'}
+                    </button>
                   </div>
                 </div>
               </div>

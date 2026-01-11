@@ -16,6 +16,10 @@ function App() {
   const [activeTab, setActiveTab] = useState('chat') // 'chat' or 'upload'
   const [uploadSuccess, setUploadSuccess] = useState(null)
   const [uploadError, setUploadError] = useState(null)
+  const [selectedFilename, setSelectedFilename] = useState(null)
+  const [isUploading, setIsUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [uploadedFiles, setUploadedFiles] = useState([])
 
   // Check backend health on mount
   useEffect(() => {
@@ -63,6 +67,7 @@ function App() {
           query,
           top_k: 5,
           similarity_threshold: 0.1,
+          document_filename: selectedFilename || undefined,
         }),
       })
 
@@ -128,8 +133,11 @@ function App() {
   }
 
   const handleUploadSuccess = (data) => {
-    setUploadSuccess(`Successfully uploaded ${data.filename} (${data.chunk_count} chunks created)`)
+    const llmSummary = data?.summary?.llm_summary
+    const summaryLine = llmSummary ? ` Summary: ${llmSummary}` : ''
+    setUploadSuccess(`Successfully uploaded ${data.filename} (${data.chunk_count} chunks created).${summaryLine}`)
     setUploadError(null)
+    setSelectedFilename(data?.filename || null)
     // Clear success message after 5 seconds
     setTimeout(() => setUploadSuccess(null), 5000)
   }
@@ -276,6 +284,7 @@ function App() {
                 onSendMessage={handleSendMessage}
                 isLoading={isLoading}
                 latestTrace={latestTrace}
+                selectedFilename={selectedFilename}
               />
             </div>
 
@@ -306,6 +315,14 @@ function App() {
             <DocumentUpload
               onUploadSuccess={handleUploadSuccess}
               onUploadError={handleUploadError}
+              onSelectFilename={setSelectedFilename}
+              selectedFilename={selectedFilename}
+              isUploading={isUploading}
+              setIsUploading={setIsUploading}
+              uploadProgress={uploadProgress}
+              setUploadProgress={setUploadProgress}
+              uploadedFiles={uploadedFiles}
+              setUploadedFiles={setUploadedFiles}
             />
 
             {/* Upload Info Banner */}

@@ -38,6 +38,7 @@ class DocumentRetrievalService:
         query: str,
         db_session: AsyncSession,
         top_k: int = 5,
+        document_filename: str | None = None,
     ) -> List[RetrievalResult]:
         """
         Retrieve relevant chunks for a query using semantic search
@@ -58,7 +59,7 @@ class DocumentRetrievalService:
 
         # Search using cosine similarity
         results = await self._semantic_search(
-            query_embedding, db_session, top_k
+            query_embedding, db_session, top_k, document_filename
         )
 
         return results
@@ -68,6 +69,7 @@ class DocumentRetrievalService:
         query_embedding: List[float],
         db_session: AsyncSession,
         top_k: int,
+        document_filename: str | None,
     ) -> List[RetrievalResult]:
         """
         Perform semantic search using pgvector cosine similarity
@@ -86,7 +88,13 @@ class DocumentRetrievalService:
         query_vector_str = json.dumps(query_embedding)
 
         # Use raw SQL for pgvector operations
-        # The <-> operator returns cosine distance, so we use 1 - distance for similarity
+        # The <=> operator returns cosine distance, so we use 1 - distance for similarity
+        where_clause = ""
+        params = {"top_k": top_k}
+        if document_filename:
+            where_clause = "WHERE d.filename = :document_filename"
+            params["document_filename"] = document_filename
+
         sql_query = text(f"""
             SELECT
                 c.id,
@@ -95,14 +103,15 @@ class DocumentRetrievalService:
                 c.chunk_index,
                 d.title,
                 d.filename,
-                1 - (c.embedding <-> '{query_vector_str}'::vector) as similarity
+                1 - (c.embedding <=> '{query_vector_str}'::vector) as similarity
             FROM chunks c
             JOIN documents d ON c.document_id = d.id
-            ORDER BY c.embedding <-> '{query_vector_str}'::vector
+            {where_clause}
+            ORDER BY c.embedding <=> '{query_vector_str}'::vector
             LIMIT :top_k
         """)
 
-        result = await db_session.execute(sql_query, {"top_k": top_k})
+        result = await db_session.execute(sql_query, params)
         rows = result.fetchall()
 
         results = []
